@@ -1,8 +1,9 @@
 import Navbar from '@/components/Navbar';
 import { notFound } from 'next/navigation';
+import { API_BASE_URL } from '@/lib/api';
 
 async function getMovieDetails(id: string) {
-  const res = await fetch(`http://localhost:8000/movies/${id}`, { next: { revalidate: 3600 } });
+  const res = await fetch(`${API_BASE_URL}/movies/${id}`, { next: { revalidate: 3600 } });
   if (!res.ok) return null;
   return res.json();
 }
@@ -19,7 +20,6 @@ export default async function MovieDetailsPage({ params }: { params: { id: strin
     <main className="min-h-screen bg-black text-white">
       <Navbar />
       
-      {/* Backdrop Section */}
       <div className="relative h-[60vh] w-full">
         <img 
           src={`https://image.tmdb.org/t/p/original${movie.backdrop_path}`} 
@@ -38,9 +38,7 @@ export default async function MovieDetailsPage({ params }: { params: { id: strin
         </div>
       </div>
 
-      {/* Content Section */}
       <div className="max-w-6xl mx-auto px-8 py-12 grid grid-cols-1 lg:grid-cols-3 gap-12">
-        {/* Left Column: Poster & Details */}
         <div className="lg:col-span-1">
           <img 
             src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`} 
@@ -59,7 +57,6 @@ export default async function MovieDetailsPage({ params }: { params: { id: strin
           </div>
         </div>
 
-        {/* Right Column: Overview & Trailer */}
         <div className="lg:col-span-2 space-y-8">
           <div>
             <h2 className="text-3xl font-bold mb-4">Overview</h2>

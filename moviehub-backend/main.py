@@ -1,6 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api.movies import router as movie_router
+from api.favorites import router as favorites_router
+from core.database import engine
+from models import models
+
+# Create database tables
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="MovieHub API",
@@ -8,7 +14,6 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Enable CORS for the Next.js frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,8 +22,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include Routers
 app.include_router(movie_router)
+app.include_router(favorites_router)
 
 @app.get("/")
 async def root():

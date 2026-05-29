@@ -1,9 +1,9 @@
 import Navbar from '@/components/Navbar';
 import MovieCard from '@/components/MovieCard';
+import { API_BASE_URL } from '@/lib/api';
 
 async function getTrendingMovies() {
-  // In production, this will be our Railway/Render URL
-  const res = await fetch('http://localhost:8000/movies/trending', { next: { revalidate: 3600 } });
+  const res = await fetch(`${API_BASE_URL}/movies/trending`, { next: { revalidate: 3600 } });
   if (!res.ok) return { results: [] };
   return res.json();
 }
@@ -16,7 +16,6 @@ export default async function Home() {
     <main className="min-h-screen bg-black text-white">
       <Navbar />
       
-      {/* Hero Section */}
       <section className="relative h-[70vh] w-full flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-black z-10" />
         <img 
@@ -37,7 +36,6 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Trending Section */}
       <section className="px-8 py-16">
         <h2 className="text-3xl font-bold mb-8 flex items-center gap-3">
           <span className="w-2 h-8 bg-red-600 rounded-full" />

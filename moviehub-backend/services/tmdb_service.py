@@ -4,13 +4,21 @@ from core.config import settings
 class TMDBService:
     def __init__(self):
         self.api_key = settings.TMDB_API_KEY
+        self.token = settings.TMDB_READ_ACCESS_TOKEN
         self.base_url = settings.TMDB_BASE_URL
 
     def _get(self, endpoint, params=None):
         if params is None:
             params = {}
-        params["api_key"] = self.api_key
-        response = requests.get(f"{self.base_url}{endpoint}", params=params)
+        
+        # TMDB supports either API Key in params or Bearer Token in header
+        # Bearer token is preferred for v4 and newer endpoints
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "accept": "application/json"
+        }
+        
+        response = requests.get(f"{self.base_url}{endpoint}", headers=headers, params=params)
         response.raise_for_status()
         return response.json()
 
