@@ -1,10 +1,11 @@
 'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { Heart, Search, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Heart, Search, User } from 'lucide-//react';
 import { useAuth } from '@/context/AuthContext';
 import AuthModal from './AuthModal';
+import NotificationCenter from './NotificationCenter';
 
 export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -43,6 +44,8 @@ export default function Navbar() {
             />
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-red-500 transition-colors" />
           </form>
+
+          <NotificationCenter />
 
           <button 
             onClick={() => setAuthOpen(true)}
