@@ -11,47 +11,44 @@ interface FavoriteButtonProps {
 
 export default function FavoriteButton({ movieId, initialIsFavorite = false }: FavoriteButtonProps) {
   const [isFavorite, setIsFavorite] = useState(initialIsFavorite);
-  const [isLoading, setIsLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-    };
-    getUser();
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
   }, []);
 
-  const toggleFavorite = async () => {
+  const toggleFavorite = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     if (!user) {
       alert('Please sign in to add movies to your watchlist!');
-      // Ideally, this would open the AuthModal, but for now, a simple alert
       return;
     }
 
-    setIsLoading(true);
+    // OPTIMISTIC UPDATE: Change UI instantly
+    const previousState = isFavorite;
+    setIsFavorite(!isFavorite);
+
     try {
       const res = await fetch(`${API_BASE_URL}/favorites/${movieId}?user_id=${user.id}`, {
         method: 'POST',
       });
-      if (res.ok) {
-        setIsFavorite(!isFavorite);
-      }
+      if (!res.ok) throw new Error('Failed to sync');
     } catch (error) {
-      console.error('Error toggling favorite:', error);
-    } finally {
-      setIsLoading(false);
+      // ROLLBACK: If the server fails, change the heart back to previous state
+      setIsFavorite(previousState);
+      console.error('Sync error:', error);
     }
   };
 
   return (
     <button 
       onClick={toggleFavorite}
-      disabled={isLoading}
-      className="p-2 rounded-full bg-gray-900/50 hover:bg-gray-800 transition-colors border border-gray-700 group"
+      className="p-2 rounded-full bg-gray-900/50 hover:bg-gray-800 transition-all duration-200 border border-gray-700 group active:scale-90"
     >
       <Heart 
-        className={`w-5 h-5 transition-colors ${isFavorite ? 'fill-red-600 text-red-600' : 'text-gray-400 group-hover:text-white'}`} 
+        className={`w-5 h-5 transition-colors duration-200 ${isFavorite ? 'fill-red-600 text-red-600' : 'text-gray-400 group-hover:text-white'}`} 
       />
     </button>
   );

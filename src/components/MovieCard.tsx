@@ -1,3 +1,5 @@
+'use client';
+import React from 'react';
 import Link from 'next/link';
 import FavoriteButton from './FavoriteButton';
 
@@ -10,7 +12,7 @@ interface MovieProps {
   };
 }
 
-export default function MovieCard({ movie }: MovieProps) {
+const MovieCard = ({ movie }: MovieProps) => {
   const posterUrl = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
   
   return (
@@ -33,4 +35,6 @@ export default function MovieCard({ movie }: MovieProps) {
       </div>
     </div>
   );
-}
+};
+
+export default React.memo(MovieCard);
