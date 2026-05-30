@@ -13,42 +13,55 @@ export default async function Home() {
   const movies = data.results || [];
 
   return (
-    <main className="min-h-screen bg-black text-white">
+    <main className="min-h-screen bg-[#0a0a0a] text-white">
       <Navbar />
       
-      <section className="relative h-[70vh] w-full flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-black z-10" />
-        <img 
-          src="https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?q=80&w=2070&auto=format&fit=crop" 
-          alt="Hero" 
-          className="absolute inset-0 w-full h-full object-cover opacity-50"
-        />
-        <div className="relative z-20 text-center px-4">
-          <h1 className="text-6xl md:text-8xl font-black tracking-tighter mb-4">
-            DISCOVER <span className="text-red-600">CINEMA</span>
+      {/* Hero Section - Cinematic Banner */}
+      <section className="relative h-[85vh] w-full flex items-center px-8 md:px-16 overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?q=80&w=2070&auto=format&fit=crop" 
+            alt="Cinema" 
+            className="w-full h-full object-cover opacity-40 scale-105 transition-transform duration-1000"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a] via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent" />
+        </div>
+
+        <div className="relative z-10 max-w-3xl">
+          <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] mb-6 text-gradient">
+            UNLIMITED <br /> <span className="text-red-600">CINEMA</span>
           </h1>
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-8">
-            Explore the latest trending movies, deep-dive into details, and stream trailers all in one place.
+          <p className="text-lg md:text-xl text-gray-400 max-w-xl mb-10 leading-relaxed">
+            Dive into the world's most acclaimed films. Explore trending hits, 
+            hidden gems, and the latest trailers in one premium experience.
           </p>
-          <button className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full font-bold transition-all transform hover:scale-105">
-            Start Exploring
-          </button>
+          <div className="flex gap-4">
+            <button className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-full font-bold transition-all transform hover:scale-105 shadow-lg shadow-red-600/30">
+              Start Exploring
+            </button>
+          </div>
         </div>
       </section>
 
-      <section className="px-8 py-16">
-        <h2 className="text-3xl font-bold mb-8 flex items-center gap-3">
-          <span className="w-2 h-8 bg-red-600 rounded-full" />
-          Trending Now
-        </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+      {/* Trending Section - Spaced Grid */}
+      <section className="px-8 md:px-16 py-24 max-w-7xl mx-auto">
+        <div className="flex items-end justify-between mb-12">
+          <div>
+            <h2 className="text-sm font-bold text-red-600 uppercase tracking-widest mb-2">Now Trending</h2>
+            <h3 className="text-4xl font-black tracking-tight">Top Picks For You</h3>
+          </div>
+          <div className="h-px flex-1 bg-gray-800 mx-8 mb-3 hidden md:block" />
+        </div>
+        
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
           {movies.length > 0 ? (
             movies.map((movie: any) => (
               <MovieCard key={movie.id} movie={movie} />
             ))
           ) : (
             <div className="col-span-full text-center py-20 text-gray-500">
-              No movies found. Please make sure the backend is running.
+              No movies found.
             </div>
           )}
         </div>
