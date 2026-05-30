@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { Heart } from 'lucide-react';
 
 export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -15,13 +16,15 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="flex items-center justify-between px-8 py-4 bg-black text-white border-b border-gray-800 sticky top-0 z-50">
+    <nav className="flex items-center justify-between px-8 py-4 bg-black/80 backdrop-blur-md text-white border-b border-gray-800 sticky top-0 z-50">
       <Link href="/" className="text-2xl font-bold tracking-tighter text-red-600">
         MOVIEHUB
       </Link>
       <div className="flex gap-6 items-center">
         <Link href="/trending" className="hidden md:block hover:text-red-500 transition">Trending</Link>
-        <Link href="/movies" className="hidden md:block hover:text-red-500 transition">Movies</Link>
+        <Link href="/watchlist" className="hidden md:block hover:text-red-500 transition flex items-center gap-2">
+          <Heart className="w-4 h-4" /> Watchlist
+        </Link>
         <form onSubmit={handleSearch} className="relative">
           <input 
             type="text" 

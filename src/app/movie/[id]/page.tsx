@@ -2,6 +2,7 @@ import Navbar from '@/components/Navbar';
 import { notFound } from 'next/navigation';
 import { API_BASE_URL } from '@/lib/api';
 import MovieCard from '@/components/MovieCard';
+import TrailerPlayer from '@/components/TrailerPlayer';
 
 async function getMovieDetails(id: string) {
   const res = await fetch(`${API_BASE_URL}/movies/${id}`, { next: { revalidate: 3600 } });
@@ -10,7 +11,6 @@ async function getMovieDetails(id: string) {
 }
 
 async function getRecommendations(id: string) {
-  // We call our backend which then calls TMDB for similar movies
   const res = await fetch(`${API_BASE_URL}/movies/${id}/recommendations`, { next: { revalidate: 3600 } });
   if (!res.ok) return { results: [] };
   return res.json();
@@ -30,7 +30,6 @@ export default async function MovieDetailsPage({ params }: { params: { id: strin
     <main className="min-h-screen bg-black text-white">
       <Navbar />
       
-      {/* Backdrop Section */}
       <div className="relative h-[70vh] w-full">
         <img 
           src={`https://image.tmdb.org/t/p/original${movie.backdrop_path}`} 
@@ -47,22 +46,14 @@ export default async function MovieDetailsPage({ params }: { params: { id: strin
             <span className="px-2 py-1 bg-gray-800 rounded text-xs uppercase font-bold">{movie.runtime} min</span>
           </div>
 
-          {/* Cinema Action Button */}
           {trailerUrl ? (
-            <a 
-              href={trailerUrl} 
-              target="_blank" 
-              className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-full font-bold transition-all transform hover:scale-105 inline-flex items-center gap-2 shadow-lg shadow-red-600/30"
-            >
-              <span>▶ Watch Trailer</span>
-            </a>
+            <TrailerPlayer url={trailerUrl} />
           ) : (
             <span className="text-gray-500 italic">Trailer not available</span>
           )}
         </div>
       </div>
 
-      {/* Content Section */}
       <div className="max-w-6xl mx-auto px-8 py-12 grid grid-cols-1 lg:grid-cols-3 gap-12">
         <div className="lg:col-span-1">
           <img 
