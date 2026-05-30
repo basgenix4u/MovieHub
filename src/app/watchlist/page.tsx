@@ -35,7 +35,10 @@ export default function WatchlistPage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600"></div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600"></div>
+          <p className="text-gray-500 animate-pulse">Loading your cinema...</p>
+        </div>
       </main>
     );
   }
@@ -51,11 +54,11 @@ export default function WatchlistPage() {
         </div>
 
         {!user ? (
-          <div className="text-center py-20 glass rounded-3xl p-12">
+          <div className="text-center py-20 glass rounded-3xl p-12 border border-white/10">
             <h2 className="text-2xl font-semibold text-gray-500 mb-4">You aren't signed in</h2>
             <p className="text-gray-600 mb-8">Sign in to create your own personal movie collection!</p>
             <button 
-              onClick={() => window.location.reload()} // Simple way to trigger auth check
+              onClick={() => window.location.reload()}
               className="bg-red-600 text-white px-8 py-3 rounded-full font-bold hover:bg-red-700 transition"
             >
               Sign In Now

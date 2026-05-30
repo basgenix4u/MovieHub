@@ -13,12 +13,12 @@ export default function Navbar() {
   const router = useRouter();
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-    };
-    getUser();
+    // Initial check
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user);
+    });
 
+    // Listen for changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
@@ -61,9 +61,16 @@ export default function Navbar() {
 
           <button 
             onClick={() => setIsAuthOpen(true)}
-            className="p-2 glass rounded-full text-white hover:text-red-500 transition-all"
+            className="p-2 glass rounded-full text-white hover:text-red-500 transition-all relative"
           >
-            {user ? <User className="w-5 h-5" /> : <User className="w-5 h-5" />}
+            {user ? (
+              <div className="relative">
+                <User className="w-5 h-5" />
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full border-2 border-black"></span>
+              </div>
+            ) : (
+              <User className="w-5 h-5" />
+            )}
           </button>
         </div>
       </div>
