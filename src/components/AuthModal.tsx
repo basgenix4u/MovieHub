@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { X, Mail, Lock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
+  const { setAuthOpen } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
@@ -26,24 +28,26 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     try {
       if (isSignUp) {
-        const { data, error } = await supabase.auth.signUp({ email, password });
+        const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         setMessage({ 
           text: 'Success! Please check your email to confirm your account before signing in.', 
           type: 'success' 
         });
       } else {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         
         setMessage({ text: 'Signed in successfully! Redirecting...', type: 'success' });
-        router.push('/');
-        router.refresh();
+        setTimeout(() => {
+          setAuthOpen(false);
+          router.push('/');
+          router.refresh();
+        }, 1500);
       }
     } catch (error: any) {
-      console.error('Auth Error:', error);
       setMessage({ 
-        text: error.message || 'An unexpected error occurred. Please try again.', 
+        text: error.message || 'An unexpected error occurred.', 
         type: 'error' 
       });
     } finally {

@@ -1,30 +1,15 @@
 'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Heart, Search, User } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
 import AuthModal from './AuthModal';
 
 export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const { user, isAuthOpen, setAuthOpen } = useAuth();
   const router = useRouter();
-
-  useEffect(() => {
-    // Initial check
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-    });
-
-    // Listen for changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,8 +45,8 @@ export default function Navbar() {
           </form>
 
           <button 
-            onClick={() => setIsAuthOpen(true)}
-            className="p-2 glass rounded-full text-white hover:text-red-500 transition-all relative"
+            onClick={() => setAuthOpen(true)}
+            className="p-2 glass rounded-full text-white hover:text-red-500 transition-all relative flex items-center justify-center"
           >
             {user ? (
               <div className="relative">
@@ -74,7 +59,7 @@ export default function Navbar() {
           </button>
         </div>
       </div>
-      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+      <AuthModal isOpen={isAuthOpen} onClose={() => setAuthOpen(false)} />
     </nav>
   );
 }

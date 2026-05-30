@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
 
 interface FavoriteButtonProps {
   movieId: number;
@@ -10,23 +10,18 @@ interface FavoriteButtonProps {
 }
 
 export default function FavoriteButton({ movieId, initialIsFavorite = false }: FavoriteButtonProps) {
+  const { user, setAuthOpen } = useAuth();
   const [isFavorite, setIsFavorite] = useState(initialIsFavorite);
-  const [user, setUser] = useState<any>(null);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
-  }, []);
 
   const toggleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
     if (!user) {
-      alert('Please sign in to add movies to your watchlist!');
+      setAuthOpen(true); // OPEN MODAL INSTEAD OF ALERT
       return;
     }
 
-    // OPTIMISTIC UPDATE: Change UI instantly
     const previousState = isFavorite;
     setIsFavorite(!isFavorite);
 
@@ -36,9 +31,7 @@ export default function FavoriteButton({ movieId, initialIsFavorite = false }: F
       });
       if (!res.ok) throw new Error('Failed to sync');
     } catch (error) {
-      // ROLLBACK: If the server fails, change the heart back to previous state
       setIsFavorite(previousState);
-      console.error('Sync error:', error);
     }
   };
 
