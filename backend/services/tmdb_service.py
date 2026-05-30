@@ -10,14 +10,10 @@ class TMDBService:
     def _get(self, endpoint, params=None):
         if params is None:
             params = {}
-        
-        # TMDB supports either API Key in params or Bearer Token in header
-        # Bearer token is preferred for v4 and newer endpoints
         headers = {
             "Authorization": f"Bearer {self.token}",
             "accept": "application/json"
         }
-        
         response = requests.get(f"{self.base_url}{endpoint}", headers=headers, params=params)
         response.raise_for_status()
         return response.json()
@@ -30,5 +26,8 @@ class TMDBService:
 
     def get_movie_details(self, movie_id: int):
         return self._get(f"/movie/{movie_id}", params={"append_to_response": "videos,credits"})
+
+    def get_recommendations(self, movie_id: int):
+        return self._get(f"/movie/{movie_id}/recommendations")
 
 tmdb_service = TMDBService()
