@@ -2,15 +2,29 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { Heart, Search, User } from 'lucide-//react';
-import { useAuth } from '@/context/AuthContext';
+import { Heart, Search, User } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 import AuthModal from './AuthModal';
-import NotificationCenter from './NotificationCenter';
 
 export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState('');
-  const { user, isAuthOpen, setAuthOpen } = useAuth();
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    getUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,11 +59,9 @@ export default function Navbar() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-red-500 transition-colors" />
           </form>
 
-          <NotificationCenter />
-
           <button 
-            onClick={() => setAuthOpen(true)}
-            className="p-2 glass rounded-full text-white hover:text-red-500 transition-all relative flex items-center justify-center"
+            onClick={() => setIsAuthOpen(true)}
+            className="p-2 glass rounded-full text-white hover:text-red-500 transition-all relative"
           >
             {user ? (
               <div className="relative">
@@ -62,7 +74,7 @@ export default function Navbar() {
           </button>
         </div>
       </div>
-      <AuthModal isOpen={isAuthOpen} onClose={() => setAuthOpen(false)} />
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </nav>
   );
 }
