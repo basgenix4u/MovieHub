@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { X, Mail, Lock } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -13,27 +14,38 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState({ text: '', type: '' });
+  const router = useRouter();
 
   if (!isOpen) return null;
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setMessage('');
+    setMessage({ text: '', type: '' });
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        setMessage('Check your email for the confirmation link!');
+        setMessage({ 
+          text: 'Success! Please check your email to confirm your account before signing in.', 
+          type: 'success' 
+        });
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        window.location.reload(); // Refresh to update auth state
+        
+        setMessage({ text: 'Signed in successfully! Redirecting...', type: 'success' });
+        router.push('/');
+        router.refresh();
       }
     } catch (error: any) {
-      setMessage(error.message);
+      console.error('Auth Error:', error);
+      setMessage({ 
+        text: error.message || 'An unexpected error occurred. Please try again.', 
+        type: 'error' 
+      });
     } finally {
       setLoading(false);
     }
@@ -77,9 +89,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             />
           </div>
 
-          {message && (
-            <p className={`text-sm text-center ${message.includes('Check') ? 'text-green-400' : 'text-red-400'}`}>
-              {message}
+          {message.text && (
+            <p className={`text-sm text-center p-2 rounded-lg ${message.type === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+              {message.text}
             </p>
           )}
 
