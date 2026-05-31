@@ -60,18 +60,16 @@ export default async function MovieDetailsPage({ params }: { params: { id: strin
               <TrailerPlayer url={trailerUrl} />
             )}
             
-            <div className="flex gap-2">
-              {sources.map((source: any, idx: number) => (
-                <a 
-                  key={idx} 
-                  href={source.url} 
-                  target="_blank" 
-                  className="bg-white/10 hover:bg-white/20 text-white px-6 py-4 rounded-full font-bold transition-all backdrop-blur-md border border-white/10 flex items-center gap-2"
-                >
-                  {source.type === 'download' ? '⬇️ Download' : `📺 ${source.name}`}
-                </a>
-              ))}
-            </div>
+            {sources.map((source: any, idx: number) => (
+              <a 
+                key={idx} 
+                href={source.url} 
+                target="_blank" 
+                className="bg-white/10 hover:bg-white/20 text-white px-6 py-4 rounded-full font-bold transition-all backdrop-blur-md border border-white/10 flex items-center gap-2"
+              >
+                {source.type === 'download' ? '⬇️ Direct Download' : `📺 Watch on ${source.name}`}
+              </a>
+            ))}
           </div>
         </div>
       </div>
@@ -80,19 +78,10 @@ export default async function MovieDetailsPage({ params }: { params: { id: strin
         <div className="lg:col-span-1">
           <img 
             src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`} 
-            alt={movie.title} 
+            alt={// a placeholder if no poster exists
+            movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : 'https://via.placeholder.com/500x750'} 
             className="w-full rounded-2xl shadow-2xl border border-gray-800"
           />
-          <div className="mt-8 space-y-4">
-            <h3 className="text-xl font-bold">Genres</h3>
-            <div className="flex flex-wrap gap-2">
-              {movie.genres?.map((g: any) => (
-                <span key={g.id} className="px-3 py-1 bg-red-600/20 text-red-500 rounded-full text-sm border border-red-600/30">
-                  {g.name}
-                </span>
-              ))}
-            </div>
-          </div>
         </div>
 
         <div className="lg:col-span-2 space-y-8">
