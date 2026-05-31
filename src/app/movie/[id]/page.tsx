@@ -16,12 +16,21 @@ async function getRecommendations(id: string) {
   return res.json();
 }
 
+async function getSources(id: string, title: string) {
+  const res = await fetch(`${API_BASE_URL}/movies/${id}/sources?title=${encodeURIComponent(title)}`, { next: { revalidate: 3600 } });
+  if (!res.ok) return { sources: [] };
+  return res.json();
+}
+
 export default async function MovieDetailsPage({ params }: { params: { id: string } }) {
   const movie = await getMovieDetails(params.id);
   if (!movie) return notFound();
 
   const recs = await getRecommendations(params.id);
   const recommendations = recs.results || [];
+
+  const sourcesData = await getSources(params.id, movie.title);
+  const sources = sourcesData.sources || [];
 
   const trailer = movie.videos?.results?.find((v: any) => v.type === 'Trailer' && v.site === 'YouTube');
   const trailerUrl = trailer ? `https://www.youtube.com/embed/${trailer.key}?autoplay=1` : null;
@@ -46,11 +55,24 @@ export default async function MovieDetailsPage({ params }: { params: { id: strin
             <span className="px-2 py-1 bg-gray-800 rounded text-xs uppercase font-bold">{movie.runtime} min</span>
           </div>
 
-          {trailerUrl ? (
-            <TrailerPlayer url={trailerUrl} />
-          ) : (
-            <span className="text-gray-500 italic">Trailer not available</span>
-          )}
+          <div className="flex flex-wrap gap-4">
+            {trailerUrl && (
+              <TrailerPlayer url={trailerUrl} />
+            )}
+            
+            <div className="flex gap-2">
+              {sources.map((source: any, idx: number) => (
+                <a 
+                  key={idx} 
+                  href={source.url} 
+                  target="_blank" 
+                  className="bg-white/10 hover:bg-white/20 text-white px-6 py-4 rounded-full font-bold transition-all backdrop-blur-md border border-white/10 flex items-center gap-2"
+                >
+                  {source.type === 'download' ? '⬇️ Download' : `📺 ${source.name}`}
+                </a>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 

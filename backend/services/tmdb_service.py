@@ -30,4 +30,30 @@ class TMDBService:
     def get_recommendations(self, movie_id: int):
         return self._get(f"/movie/{movie_id}/recommendations")
 
+    def get_external_sources(self, movie_id: int, title: str):
+        # This is a simulated source aggregator. 
+        # In a real app, this would scrape or use API endpoints from other sites.
+        return {
+            "sources": [
+                {
+                    "name": "YouTube",
+                    "type": "embed",
+                    "url": f"https://www.youtube.com/results?search_query={title}+full+movie",
+                    "is_trailer": False
+                },
+                {
+                    "name": "Nkiri",
+                    "type": "external",
+                    "url": f"https://nkiri.com/search?q={title.replace(' ', '+')}",
+                    "is_trailer": False
+                },
+                {
+                    "name": "Download Center",
+                    "type": "download",
+                    "url": f"https://www.google.com/search?q=download+{title.replace(' ', '+')}+movie",
+                    "is_trailer": False
+                }
+            ]
+        }
+
 tmdb_service = TMDBService()

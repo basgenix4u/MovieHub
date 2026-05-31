@@ -30,3 +30,10 @@ async def get_recommendations(movie_id: int):
         return tmdb_service.get_recommendations(movie_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{movie_id}/sources")
+async def get_sources(movie_id: int, title: str):
+    try:
+        return tmdb_service.get_external_sources(movie_id, title)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
