@@ -10,6 +10,12 @@ async function getMovieDetails(id: string) {
   return res.json();
 }
 
+async function getRecommendations(id: string) {
+  const res = await fetch(`${API_BASE_URL}/movies/${id}/recommendations`, { next: { revalidate: 3600 } });
+  if (!res.ok) return { results: [] };
+  return res.json();
+}
+
 async function getSources(id: string, title: string) {
   const res = await fetch(`${API_BASE_URL}/movies/${id}/sources?title=${encodeURIComponent(title)}`, { next: { revalidate: 3600 } });
   if (!res.ok) return { sources: [] };
@@ -19,6 +25,9 @@ async function getSources(id: string, title: string) {
 export default async function MovieDetailsPage({ params }: { params: { id: string } }) {
   const movie = await getMovieDetails(params.id);
   if (!movie) return notFound();
+
+  const recs = await getRecommendations(params.id);
+  const recommendations = recs.results || [];
 
   const sourcesData = await getSources(params.id, movie.title);
   const sources = sourcesData.sources || [];
