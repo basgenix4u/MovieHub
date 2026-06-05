@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Table
+from sqlalchemy import Column, Integer, String, ForeignKey, Table, Text
 from sqlalchemy.orm import relationship
 from core.database import Base
 
@@ -23,5 +23,11 @@ class Movie(Base):
     __tablename__ = "movies"
     id = Column(Integer, primary_key=True) # TMDB Movie ID
     title = Column(String)
+    overview = Column(Text)
+    poster_path = Column(String)
+    backdrop_path = Column(String)
+    release_date = Column(String)
+    vote_average = Column(String)
+    source_url = Column(String) # Store the Thenkiri/Source URL
     
     favorited_by = relationship("User", secondary=favorites, back_populates="favorite_movies")

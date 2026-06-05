@@ -33,6 +33,14 @@ export default function Navbar() {
     }
   };
 
+  const handleUserClick = () => {
+    if (user) {
+      router.push('/profile');
+    } else {
+      setIsAuthOpen(true);
+    }
+  };
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-3 glass rounded-full">
@@ -60,7 +68,7 @@ export default function Navbar() {
           </form>
 
           <button 
-            onClick={() => setIsAuthOpen(true)}
+            onClick={handleUserClick}
             className="p-2 glass rounded-full text-white hover:text-red-500 transition-all relative"
           >
             {user ? (

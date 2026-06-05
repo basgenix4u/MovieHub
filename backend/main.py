@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api.movies import router as movie_router
 from api.favorites import router as favorites_router
+from api.proxy import router as proxy_router
 from core.database import engine
 from models import models
 
@@ -24,6 +25,7 @@ app.add_middleware(
 
 app.include_router(movie_router)
 app.include_router(favorites_router)
+app.include_router(proxy_router)
 
 @app.get("/")
 async def root():

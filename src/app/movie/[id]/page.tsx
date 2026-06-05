@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { API_BASE_URL } from '@/lib/api';
 import MovieCard from '@/components/MovieCard';
 import TrailerPlayer from '@/components/TrailerPlayer';
+import Link from 'next/link';
 
 async function getMovieDetails(id: string) {
   const res = await fetch(`${API_BASE_URL}/movies/${id}`, { next: { revalidate: 3600 } });
@@ -58,14 +59,24 @@ export default async function MovieDetailsPage({ params }: { params: { id: strin
             {trailerUrl && <TrailerPlayer url={trailerUrl} />}
             
             {sources.map((source: any, idx: number) => (
-              <a 
-                key={idx} 
-                href={source.url} 
-                target={source.type === 'download' ? '_blank' : '_self'}
-                className="bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-full font-bold transition-all transform hover:scale-105 shadow-lg shadow-red-600/30 flex items-center gap-2"
-              >
-                {source.type === 'download' ? '⬇️ Direct Download' : `📺 ${source.name}`}
-              </a>
+              source.type === 'download' ? (
+                <a 
+                  key={idx} 
+                  href={source.url} 
+                  target="_blank"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-full font-bold transition-all transform hover:scale-105 shadow-lg shadow-blue-600/30 flex items-center gap-2"
+                >
+                  ⬇️ Direct Download
+                </a>
+              ) : (
+                <Link 
+                  key={idx} 
+                  href={`/watch?url=${encodeURIComponent(source.url)}`}
+                  className="bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-full font-bold transition-all transform hover:scale-105 shadow-lg shadow-red-600/30 flex items-center gap-2"
+                >
+                  📺 {source.name}
+                </Link>
+              )
             ))}
           </div>
         </div>

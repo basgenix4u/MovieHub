@@ -21,10 +21,16 @@ class TMDBProvider(BaseProvider):
 class ThenkiriProvider(BaseProvider):
     def search(self, query: str):
         # Use the scraper to find movies on thenkiri
-        return scraper_service.sync_latest_movies() # Simplified for now
+        # For now, we filter the latest movies by the query
+        all_latest = scraper_service.sync_latest_movies()
+        if not query:
+            return all_latest
+        
+        filtered = [m for m in all_latest if query.lower() in m['title'].lower()]
+        return filtered
 
     def resolve_link(self, movie_url: str):
-        return scraper_//service.resolve_direct_download(movie_url)
+        return scraper_service.resolve_direct_download(movie_url)
 
 class ProviderOrchestrator:
     def __init__(self):
