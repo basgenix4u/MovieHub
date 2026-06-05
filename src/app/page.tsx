@@ -8,15 +8,26 @@ async function getTrendingMovies() {
   return res.json();
 }
 
+async function getLatestMovies() {
+  // In a real scenario, we'd have a /movies/latest endpoint
+  // For now, we can use the /movies/universal-search with a generic query or a specific 'latest' flag
+  const res = await fetch(`${API_BASE_URL}/movies/universal-search?q=2026`, { next: { revalidate: 3600 } });
+  if (!res.ok) return { results: [] };
+  return res.json();
+}
+
 export default async function Home() {
-  const data = await getTrendingMovies();
-  const movies = data.results || [];
+  const trendingData = await getTrendingMovies();
+  const trendingMovies = trendingData.results || [];
+
+  const latestData = await getLatestMovies();
+  const latestMovies = latestData.results || [];
 
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-white">
       <Navbar />
       
-      {/* Hero Section - Cinematic Banner */}
+      {/* Hero Section */}
       <section className="relative h-[85vh] w-full flex items-center px-8 md:px-16 overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img 
@@ -44,7 +55,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Trending Section - Spaced Grid */}
+      {/* Trending Section */}
       <section className="px-8 md:px-16 py-24 max-w-7xl mx-auto">
         <div className="flex items-end justify-between mb-12">
           <div>
@@ -55,13 +66,36 @@ export default async function Home() {
         </div>
         
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
-          {movies.length > 0 ? (
-            movies.map((movie: any) => (
+          {trendingMovies.length > 0 ? (
+            trendingMovies.map((movie: any) => (
               <MovieCard key={movie.id} movie={movie} />
             ))
           ) : (
             <div className="col-span-full text-center py-20 text-gray-500">
-              No movies found.
+              No trending movies found.
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Latest Releases Section */}
+      <section className="px-8 md:px-16 py-24 max-w-7xl mx-auto">
+        <div className="flex items-end justify-between mb-12">
+          <div>
+            <h2 className="text-sm font-bold text-blue-600 uppercase tracking-widest mb-2">Latest Releases</h2>
+            <h3 className="text-4xl font-black tracking-tight">Freshly Added</h3>
+          </div>
+          <div className="h-px flex-1 bg-gray-800 mx-8 mb-3 hidden md:block" />
+        </div>
+        
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
+          {latestMovies.length > 0 ? (
+            latestMovies.map((movie: any, idx: number) => (
+              <MovieCard key={movie.id || idx} movie={movie} />
+            ))
+          ) : (
+            <div className="col-span-full text-center py-20 text-gray-500">
+              No latest releases found.
             </div>
           )}
         </div>
