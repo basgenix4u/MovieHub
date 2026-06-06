@@ -86,6 +86,21 @@ export default async function MovieDetailsPage({ params }: { params: { id: strin
         <h2 className="text-3xl font-bold mb-4">Overview</h2>
         <p className="text-gray-400 text-lg leading-relaxed">{movie.overview}</p>
       </div>
+
+      {/* Recommendations Section */}
+      {recommendations.length > 0 && (
+        <section className="max-w-6xl mx-auto px-8 py-24 border-t border-white/10">
+          <div className="flex items-center gap-4 mb-12">
+            <h2 className="text-3xl font-black">Recommended For You</h2>
+            <div className="h-px flex-1 bg-gray-800" />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
+            {recommendations.map((rec: any) => (
+              <MovieCard key={rec.id} movie={rec} />
+            ))}
+          </div>
+        </section>
+      )}
     </main>
   );
 }

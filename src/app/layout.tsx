@@ -1,11 +1,9 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import { AuthProvider } from '@/context/AuthContext';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+import { Inter } from 'next/font/google';
+import './globals.css';
 
-export const metadata: Metadata = {
-  title: "MovieHub | Discover Cinema",
-  description: "High-end movie discovery and aggregation platform",
-};
+const inter = Inter({ subsets: ['latin'] });
 
 export default function RootLayout({
   children,
@@ -14,10 +12,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-black text-white antialiased">
-        <AuthProvider>
+      <body className={`${inter.className} bg-black text-white antialiased`}>
+        <Navbar />
+        <div className="min-h-screen">
           {children}
-        </AuthProvider>
+        </div>
+        <Footer />
       </body>
     </html>
   );
