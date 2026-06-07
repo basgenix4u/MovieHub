@@ -4,6 +4,7 @@ import { API_BASE_URL } from '@/lib/api';
 import MovieCard from '@/components/MovieCard';
 import TrailerPlayer from '@/components/TrailerPlayer';
 import Link from 'next/link';
+import { useState } from 'react';
 
 async function getMovieDetails(id: string) {
   const res = await fetch(`${API_BASE_URL}/movies/${id}`, { next: { revalidate: 3600 } });
@@ -35,6 +36,33 @@ export default async function MovieDetailsPage({ params }: { params: { id: strin
 
   const trailer = movie.videos?.results?.find((v: any) => v.type === 'Trailer' && v.site === 'YouTube');
   const trailerUrl = trailer ? `https://www.youtube.com/embed/${trailer.key}?autoplay=1` : null;
+
+  return (
+    <MovieDetailsClient 
+      movie={movie} 
+      recommendations={recommendations} 
+      sources={sources} 
+      trailerUrl={trailerUrl} 
+    />
+  );
+}
+
+function MovieDetailsClient({ movie, recommendations, sources, trailerUrl }: any) {
+  const [ytMovies, setYtMovies] = useState<any[]>([]);
+  const [isSearchingYt, setIsSearchingYt] = useState(false);
+
+  const searchYouTube = async () => {
+    setIsSearchingYt(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/movies/youtube/search?title=${encodeURIComponent(movie.title)}`);
+      const data = await res.json();
+      setYtMovies(data.results || []);
+    } catch (e) {
+      console.error("YT Search Error", e);
+    } finally {
+      setIsSearchingYt(false);
+    }
+  };
 
   return (
     <main className="min-h-screen bg-black text-white">
@@ -78,7 +106,36 @@ export default async function MovieDetailsPage({ params }: { params: { id: strin
                 </Link>
               )
             ))}
+
+            <button 
+              onClick={searchYouTube}
+              disabled={isSearchingYt}
+              className="bg-white text-black hover:bg-gray-200 px-6 py-4 rounded-full font-bold transition-all transform hover:scale-105 shadow-lg flex items-center gap-2 disabled:opacity-50"
+            >
+              {isSearchingYt ? 'Searching...' : '🔍 Find Full Movie on YT'}
+            </button>
           </div>
+
+          {ytMovies.length > 0 && (
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {ytMovies.map((ytMovie: any) => (
+                <div key={ytMovie.id} className="glass p-4 rounded-2xl border border-white/10 flex items-center gap-4">
+                  <img src={ytMovie.thumbnail} className="w-24 h-14 object-cover rounded-lg" alt="thumb" />
+                  <div className="flex-1 overflow-hidden">
+                    <p className="text-sm font-bold truncate">{ytMovie.title}</p>
+                    <p className="text-xs text-gray-400">{Math.floor(ytMovie.duration/60)}m {ytMovie.duration%60}s</p>
+                  </div>
+                  <a 
+                    href={`${API_BASE_URL}/movies/youtube/download/${ytMovie.id}?title=${encodeURIComponent(movie.title)}`}
+                    className="bg-red-600 hover:bg-red-700 p-2 rounded-full transition"
+                    title="Download to storage"
+                  >
+                    ⬇️
+                  </a>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
       
@@ -87,7 +144,6 @@ export default async function MovieDetailsPage({ params }: { params: { id: strin
         <p className="text-gray-400 text-lg leading-relaxed">{movie.overview}</p>
       </div>
 
-      {/* Recommendations Section */}
       {recommendations.length > 0 && (
         <section className="max-w-6xl mx-auto px-8 py-24 border-t border-white/10">
           <div className="flex items-center gap-4 mb-12">

@@ -1,32 +1,28 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Request, Response
+from fastapi.responses import StreamingResponse
+import requests
 from services.provider_engine import orchestrator
 from services.tmdb_service import tmdb_service
 from services.scraper_service import scraper_service
+from services.youtube_service import youtube_service
 from core.database import SessionLocal
 from models import models
 
 router = APIRouter(prefix="/movies", tags=["Movies"])
 
 def perform_sync():
-    """
-    Syncs latest movies from Thenkiri and updates database with TMDB metadata.
-    """
     db = SessionLocal()
     try:
         scraped_movies = scraper_service.sync_latest_movies()
         for sm in scraped_movies:
-            # Find movie on TMDB to get metadata and ID
             tmdb_res = tmdb_service.search_movies(sm['title'])
             if tmdb_res.get('results'):
                 best_match = tmdb_res['results'][0]
                 movie_id = best_match['id']
-                
-                # Upsert movie in DB
                 movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
                 if not movie:
                     movie = models.Movie(id=movie_id)
                     db.add(movie)
-                
                 movie.title = best_match['title']
                 movie.overview = best_match.get('overview')
                 movie.poster_path = best_match.get('poster_path')
@@ -34,7 +30,6 @@ def perform_sync():
                 movie.release_date = best_match.get('release_date')
                 movie.vote_average = str(best_match.get('vote_average'))
                 movie.source_url = sm['url']
-                
                 db.commit()
         return len(scraped_movies)
     except Exception as e:
@@ -45,9 +40,6 @@ def perform_sync():
 
 @router.post("/sync")
 async def trigger_sync(background_tasks: BackgroundTasks):
-    """
-    Triggers a background synchronization of movies.
-    """
     background_tasks.add_task(perform_sync)
     return {"message": "Synchronization started in background"}
 
@@ -72,9 +64,6 @@ async def get_movie(movie_id: int):
 
 @router.get("/{movie_id}/recommendations")
 async def get_recommendations(movie_id: int):
-    """
-    Fetches recommended movies based on the current movie ID.
-    """
     try:
         return tmdb_service.get_recommendations(movie_id)
     except Exception as e:
@@ -82,27 +71,54 @@ async def get_recommendations(movie_id: int):
 
 @router.get("/{movie_id}/sources")
 async def get_movie_sources(movie_id: int, title: str):
-    """
-    Finds streaming and download sources for a specific movie by title.
-    """
     try:
-        # Search for the movie title across providers
         results = await orchestrator.universal_search(title)
-        
         sources = []
         for res in results:
             url = res.get('url')
             if url:
-                # Try to resolve a direct download link
                 direct_link = scraper_service.resolve_direct_download(url)
-                
-                # If the link changed, we have a direct download
                 if direct_link != url:
                     sources.append({"name": "Direct Download", "url": direct_link, "type": "download"})
-                
-                # Also add the source page as a streaming option
                 sources.append({"name": "Thenkiri", "url": url, "type": "stream"})
-        
         return {"sources": sources}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/youtube/search")
+async def search_youtube_movies(title: str):
+    """
+    Uses the Intelligence Algorithm to find full movies on YouTube.
+    """
+    try:
+        movies = youtube_service.search_full_movies(title)
+        return {"results": movies, "count": len(movies)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/youtube/download/{video_id}")
+async def download_youtube_movie(video_id: str, title: str = "movie"):
+    """
+    The Delivery Pipeline:
+    Extracts raw stream and forces a direct file download to device.
+    """
+    try:
+        direct_url = youtube_service.get_direct_download_link(video_id)
+        if not direct_url:
+            raise HTTPException(status_code=404, detail="Could not extract direct video stream")
+
+        # Proxy the stream to the user to hide the YouTube URL and force download
+        response = requests.get(direct_url, stream=True)
+        
+        # Forced Download Header: This makes the phone save the file to storage
+        headers = {
+            "Content-Disposition": f"attachment; filename={title.replace(' ', '_')}.mp4",
+            "Content-Type": "video/mp4",
+        }
+        
+        return StreamingResponse(
+            response.iter_content(chunk_size=1024*1024), # 1MB chunks
+            headers=headers
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
