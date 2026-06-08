@@ -10,7 +10,8 @@ logger = logging.getLogger("YouTubeExtractor")
 class YouTubeExtractorService:
     def __init__(self):
         self.api_key = settings.YOUTUBE_API_KEY
-        self.base_url = "https://www.googleapis.com/youtube/v3/search"
+        self.search_url = "https://www.googleapis.com/youtube/v3/search"
+        self.video_url = "https://www.googleapis.com/youtube/v3/videos"
         
         self.download_opts = {
             'format': 'best[ext=mp4]/best',
@@ -20,77 +21,110 @@ class YouTubeExtractorService:
 
     def search_full_movies(self, movie_title: str) -> List[Dict]:
         """
-        HYBRID INTELLIGENCE ALGORITHM:
-        Tries Official API first for instant filtering, falls back to Fast-Scan.
+        ULTRA-FAST HYBRID INTELLIGENCE:
+        Uses YouTube API for both Search AND Duration checks.
+        Zero dependence on yt-dlp for discovery.
         """
-        # Strategy 1: Official API (Instant and Accurate)
-        if self.api_key:
-            try:
-                params = {
-                    'part': 'snippet',
-                    'q': f"{movie_title} full movie complete film",
-                    'type': 'video',
-                    'videoDuration': 'long', # Only videos longer than 20 minutes
-                    'maxResults': 10,
-                    'key': self.api_key
-                }
-                res = requests.get(self.base_url, params=params, timeout=5)
-                if res.ok:
-                    data = res.json()
-                    results = []
-                    for item in data.get('items', []):
-                        # The API doesn't give exact duration in the search endpoint, 
-                        # so we verify the top match using yt-dlp
-                        video_id = item['id']['videoId']
-                        duration = self._get_duration(video_id)
-                        if duration >= 4800: # 80 mins
-                            results.append({
-                                "id": video_id,
-                                "title": item['snippet']['title'],
-                                "url": f"https://www.youtube.com/watch?v={video_id}",
-                                "duration": duration,
-                                "thumbnail": item['snippet']['thumbnails']['high']['url'],
-                                "view_count": 0, # API search doesn't provide this
-                                "upload_date": item['snippet']['publishedAt'],
-                            })
-                            return results # Found a winner instantly!
-                logger.info("API search failed or no full movie found, switching to fallback.")
-            except Exception as e:
-                logger.error(f"API Error: {e}")
+        if not self.api_key:
+            logger.info("No API key provided, using limited fallback.")
+            return self._fast_scan_fallback(movie_title)
 
-        # Strategy 2: Fast-Scan Fallback (Limited to top 3 to prevent hanging)
-        return self._fast_scan_fallback(movie_title)
-
-    def _get_duration(self, video_id: str) -> int:
         try:
-            url = f"https://www.youtube.com/watch?v={video_id}"
-            with yt_dlp.YoutubeDL({'quiet': True, 'no_warnings': True}) as ydl:
-                info = ydl.extract_info(url, download=False)
-                return info.get('duration', 0)
-        except:
-            return 0
+            # Step 1: Search for videos
+            search_params = {
+                'part': 'snippet',
+                'q': f"{movie_title} full movie",
+                'type': 'video',
+                'videoDuration': 'long', # API filter for > 20 mins
+                'maxResults': 10,
+                'key': self.api_key
+            }
+            search_res = requests.get(self.search_url, params=search_params, timeout=5)
+            if not search_res.ok:
+                return self._fast_scan_fallback(movie_title)
+                
+            items = search_res.json().get('items', [])
+            if not items:
+                return []
+
+            # Step 2: Get exact durations for these videos using the /videos endpoint
+            # This is MUCH faster than yt-dlp
+            video_ids = ",".join([item['id']['videoId'] for item in items])
+            video_params = {
+                'part': 'contentDetails',
+                'id': video_ids,
+                'key': self.api_key
+            }
+            video_res = requests.get(self.video_url, params=video_params, timeout=5)
+            
+            if video_res.ok:
+                video_data = video_res.json().get('items', [])
+                duration_map = {}
+                for v in video_data:
+                    # duration is in ISO 8601 format (e.g., PT1H30M10S)
+                    duration_map[v['id']] = self._parse_iso8601_duration(v['contentDetails']['duration'])
+
+                # Step 3: Filter and Return
+                for item in items:
+                    v_id = item['id']['videoId']
+                    duration = duration_map.get(v_id, 0)
+                    if duration >= 4800: # 80 minutes
+                        return [{
+                            "id": v_id,
+                            "title": item['snippet']['title'],
+                            "url": f"https://www.youtube.com/watch?v={v_id}",
+                            "duration": duration,
+                            "thumbnail": item['snippet']['thumbnails']['high']['url'],
+                            "view_count": 0,
+                            "upload_date": item['snippet']['publishedAt'],
+                        }]
+            
+            return self._fast_scan_fallback(movie_title)
+
+        except Exception as e:
+            logger.error(f"Hybrid Search Error: {e}")
+            return self._fast_scan_fallback(movie_title)
+
+    def _parse_iso8601_duration(self, duration_str: str) -> int:
+        """
+        Converts ISO 8601 duration (PT#H#M#S) to total seconds.
+        Example: PT1H30M10S -> 5410
+        """
+        import re
+        seconds = 0
+        hours = re.search(r'(\d+)H', duration_str)
+        minutes = re.search(r'(\d+)M', duration_str)
+        secs = re.search(r'(\d+)S', duration_str)
+        
+        if hours: seconds += int(hours.group(1)) * 3600
+        if minutes: seconds += int(minutes.group(1)) * 60
+        if secs: seconds += int(secs.group(1))
+        return seconds
 
     def _fast_scan_fallback(self, movie_title: str) -> List[Dict]:
-        query = f"ytsearch5:{movie_title} full movie"
+        # Very limited fallback to prevent hanging
+        query = f"ytsearch3:{movie_title} full movie"
         try:
             with yt_dlp.YoutubeDL({'quiet': True, 'no_warnings': True, 'extract_flat': True}) as ydl:
                 info = ydl.extract_info(query, download=False)
                 if 'entries' not in info: return []
-                
-                for entry in info['entries'][:3]: # Only check top 3 to avoid timeout
-                    duration = self._get_duration(entry['id'])
-                    if duration >= 4800:
-                        return [{
-                            "id": entry['id'],
-                            "title": entry.get('title', 'Full Movie'),
-                            "url": entry.get('url'),
-                            "duration": duration,
-                            "thumbnail": entry.get('thumbnail'),
-                            "view_count": 0,
-                            "upload_date": "",
-                        }]
-        except Exception as e:
-            logger.error(f"Fallback Error: {e}")
+                for entry in info['entries'][:3]:
+                    try:
+                        # Use a very fast check
+                        with yt_dlp.YoutubeDL({'quiet': True, 'no_warnings': True}) as ydl_fast:
+                            full_info = ydl_fast.extract_info(entry['url'], download=False)
+                            if full_info.get('duration', 0) >= 4800:
+                                return [{
+                                    "id": entry['id'],
+                                    "title": entry.get('title', 'Full Movie'),
+                                    "url": entry.get('url'),
+                                    "duration": full_info.get('duration', 0),
+                                    "thumbnail": entry.get('thumbnail'),
+                                    "view_count": 0,
+                                    "upload_date": "",
+                                }]
+                    except: continue
+        except: pass
         return []
 
     def get_direct_download_link(self, video_id: str) -> Optional[str]:
