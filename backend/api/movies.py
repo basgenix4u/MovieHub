@@ -3,6 +3,7 @@ from fastapi.responses import StreamingResponse
 import requests
 from services.provider_engine import orchestrator
 from services.tmdb_service import tmdb_service
+from services.scraper_service import scraper_service
 from services.youtube_service import youtube_service
 from core.database import SessionLocal
 from models import models
@@ -11,8 +12,6 @@ from core.config import settings
 router = APIRouter(prefix="/movies", tags=["Movies"])
 
 def perform_sync():
-    # This is now largely obsolete since we are focusing on YT,
-    # but we keep it for database consistency.
     pass
 
 @router.post("/sync")
@@ -49,17 +48,16 @@ async def get_recommendations(movie_id: int):
 @router.get("/{movie_id}/sources")
 async def get_movie_sources(movie_id: int, title: str):
     """
-    SUPER-FAST AUTOMATED DISCOVERY:
-    Focuses exclusively on YouTube for full movies.
+    HYBRID AUTOMATED DISCOVERY:
+    Ultra-fast discovery prioritizing the YouTube API.
     """
     try:
         sources = []
         
-        # 1. Focus only on YouTube Discovery (Removed Thenkiri)
+        # 1. Focus exclusively on YouTube for high-speed delivery
         yt_movies = youtube_service.search_full_movies(title)
         if yt_movies:
             best_yt = yt_movies[0]
-            # Relative path for frontend to handle
             yt_download_path = f"/movies/youtube/download/{best_yt['id']}?title={title}"
             
             sources.append({
