@@ -71,7 +71,13 @@ async def get_recommendations(movie_id: int):
 
 @router.get("/{movie_id}/sources")
 async def get_movie_sources(movie_id: int, title: str):
+    """
+    AUTOMATED DISCOVERY ENGINE:
+    Finds streaming and download sources from multiple providers,
+    including automatic full-movie discovery on YouTube.
+    """
     try:
+        # 1. Get sources from existing providers (Thenkiri, etc.)
         results = await orchestrator.universal_search(title)
         sources = []
         for res in results:
@@ -81,44 +87,51 @@ async def get_movie_sources(movie_id: int, title: str):
                 if direct_link != url:
                     sources.append({"name": "Direct Download", "url": direct_link, "type": "download"})
                 sources.append({"name": "Thenkiri", "url": url, "type": "stream"})
+        
+        # 2. AUTOMATIC YOUTUBE DISCOVERY
+        # We do the "dirty work" here in the backend so the user doesn't have to
+        yt_movies = youtube_service.search_full_movies(title)
+        if yt_movies:
+            # Take the best match (sorted by views in the service)
+            best_yt = yt_movies[0]
+            # We provide a link to our internal download proxy
+            yt_download_url = f"{API_BASE_URL}/movies/youtube/download/{best_yt['id']}?title={title}"
+            
+            sources.append({
+                "name": "YouTube HD", 
+                "url": yt_download_url, 
+                "type": "download",
+                "is_youtube": True
+            })
+        
         return {"sources": sources}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/youtube/search")
-async def search_youtube_movies(title: str):
-    """
-    Uses the Intelligence Algorithm to find full movies on YouTube.
-    """
-    try:
-        movies = youtube_service.search_full_movies(title)
-        return {"results": movies, "count": len(movies)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/youtube/download/{video_id}")
 async def download_youtube_movie(video_id: str, title: str = "movie"):
-    """
-    The Delivery Pipeline:
-    Extracts raw stream and forces a direct file download to device.
-    """
     try:
         direct_url = youtube_service.get_direct_download_link(video_id)
         if not direct_url:
             raise HTTPException(status_code=404, detail="Could not extract direct video stream")
 
-        # Proxy the stream to the user to hide the YouTube URL and force download
         response = requests.get(direct_url, stream=True)
-        
-        # Forced Download Header: This makes the phone save the file to storage
         headers = {
             "Content-Disposition": f"attachment; filename={title.replace(' ', '_')}.mp4",
             "Content-Type": "video/mp4",
         }
-        
         return StreamingResponse(
-            response.iter_content(chunk_size=1024*1024), # 1MB chunks
+            response.iter_content(chunk_size=1024*1024),
             headers=headers
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Keep this for legacy/debug, but the main flow now uses /sources
+@router.get("/youtube/search")
+async def search_youtube_movies(title: str):
+    try:
+        movies = youtube_service.search_full_movies(title)
+        return {"results": movies, "count": len(movies)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

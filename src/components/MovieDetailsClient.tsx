@@ -7,25 +7,6 @@ import TrailerPlayer from '@/components/TrailerPlayer';
 import Link from 'next/link';
 
 export default function MovieDetailsClient({ movie, recommendations, sources, trailerUrl }: any) {
-  const [ytMovies, setYtMovies] = useState<any[]>([]);
-  const [isSearchingYt, setIsSearchingYt] = useState(false);
-
-  const searchYouTube = async () => {
-    setIsSearchingYt(true);
-    try {
-      // Access API_BASE_URL from a global or pass it as prop. 
-      // For consistency, we'll use the same pattern as other components.
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const res = await fetch(`${API_BASE_URL}/movies/youtube/search?title=${encodeURIComponent(movie.title)}`);
-      const data = await res.json();
-      setYtMovies(data.results || []);
-    } catch (e) {
-      console.error("YT Search Error", e);
-    } finally {
-      setIsSearchingYt(false);
-    }
-  };
-
   return (
     <main className="min-h-screen bg-black text-white">
       <Navbar />
@@ -54,9 +35,13 @@ export default function MovieDetailsClient({ movie, recommendations, sources, tr
                   key={idx} 
                   href={source.url} 
                   target="_blank"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-full font-bold transition-all transform hover:scale-105 shadow-lg shadow-blue-600/30 flex items-center gap-2"
+                  className={`px-6 py-4 rounded-full font-bold transition-all transform hover:scale-105 shadow-lg flex items-center gap-2 ${
+                    source.is_youtube 
+                      ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-600/30' 
+                      : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/30'
+                  }`}
                 >
-                  ⬇️ Direct Download
+                  ⬇️ {source.is_youtube ? 'Download HD Movie' : 'Direct Download'}
                 </a>
               ) : (
                 <Link 
@@ -68,36 +53,7 @@ export default function MovieDetailsClient({ movie, recommendations, sources, tr
                 </Link>
               )
             ))}
-
-            <button 
-              onClick={searchYouTube}
-              disabled={isSearchingYt}
-              className="bg-white text-black hover:bg-gray-200 px-6 py-4 rounded-full font-bold transition-all transform hover:scale-105 shadow-lg flex items-center gap-2 disabled:opacity-50"
-            >
-              {isSearchingYt ? 'Searching...' : '🔍 Find Full Movie on YT'}
-            </button>
           </div>
-
-          {ytMovies.length > 0 && (
-            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {ytMovies.map((ytMovie: any) => (
-                <div key={ytMovie.id} className="glass p-4 rounded-2xl border border-white/10 flex items-center gap-4">
-                  <img src={ytMovie.thumbnail} className="w-24 h-14 object-cover rounded-lg" alt="thumb" />
-                  <div className="flex-1 overflow-hidden">
-                    <p className="text-sm font-bold truncate">{ytMovie.title}</p>
-                    <p className="text-xs text-gray-400">{Math.floor(ytMovie.duration/60)}m {ytMovie.duration%60}s</p>
-                  </div>
-                  <a 
-                    href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/movies/youtube/download/${ytMovie.id}?title=${encodeURIComponent(movie.title)}`}
-                    className="bg-red-600 hover:bg-red-700 p-2 rounded-full transition"
-                    title="Download to storage"
-                  >
-                    ⬇️
-                  </a>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
       
