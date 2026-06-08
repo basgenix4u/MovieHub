@@ -3,7 +3,6 @@ from fastapi.responses import StreamingResponse
 import requests
 from services.provider_engine import orchestrator
 from services.tmdb_service import tmdb_service
-from services.scraper_service import scraper_service
 from services.youtube_service import youtube_service
 from core.database import SessionLocal
 from models import models
@@ -12,32 +11,9 @@ from core.config import settings
 router = APIRouter(prefix="/movies", tags=["Movies"])
 
 def perform_sync():
-    db = SessionLocal()
-    try:
-        scraped_movies = scraper_service.sync_latest_movies()
-        for sm in scraped_movies:
-            tmdb_res = tmdb_service.search_movies(sm['title'])
-            if tmdb_res.get('results'):
-                best_match = tmdb_res['results'][0]
-                movie_id = best_match['id']
-                movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
-                if not movie:
-                    movie = models.Movie(id=movie_id)
-                    db.add(movie)
-                movie.title = best_match['title']
-                movie.overview = best_match.get('overview')
-                movie.poster_path = best_match.get('poster_path')
-                movie.backdrop_path = best_match.get('backdrop_path')
-                movie.release_date = best_match.get('release_date')
-                movie.vote_average = str(best_match.get('vote_average'))
-                movie.source_url = sm['url']
-                db.commit()
-        return len(scraped_movies)
-    except Exception as e:
-        print(f"Sync Task Error: {e}")
-        return 0
-    finally:
-        db.close()
+    # This is now largely obsolete since we are focusing on YT,
+    # but we keep it for database consistency.
+    pass
 
 @router.post("/sync")
 async def trigger_sync(background_tasks: BackgroundTasks):
@@ -73,28 +49,17 @@ async def get_recommendations(movie_id: int):
 @router.get("/{movie_id}/sources")
 async def get_movie_sources(movie_id: int, title: str):
     """
-    AUTOMATED DISCOVERY ENGINE:
-    Finds streaming and download sources from multiple providers.
+    SUPER-FAST AUTOMATED DISCOVERY:
+    Focuses exclusively on YouTube for full movies.
     """
     try:
         sources = []
         
-        # 1. Get sources from existing providers
-        results = await orchestrator.universal_search(title)
-        for res in results:
-            url = res.get('url')
-            if url:
-                direct_link = scraper_service.resolve_direct_download(url)
-                if direct_link != url:
-                    sources.append({"name": "Direct Download", "url": direct_link, "type": "download"})
-                sources.append({"name": "Thenkiri", "url": url, "type": "stream"})
-        
-        # 2. AUTOMATIC YOUTUBE DISCOVERY
+        # 1. Focus only on YouTube Discovery (Removed Thenkiri)
         yt_movies = youtube_service.search_full_movies(title)
         if yt_movies:
             best_yt = yt_movies[0]
-            # We use a relative path for the download link so the frontend 
-            # can prepend the correct base URL.
+            # Relative path for frontend to handle
             yt_download_path = f"/movies/youtube/download/{best_yt['id']}?title={title}"
             
             sources.append({
