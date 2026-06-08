@@ -13,29 +13,26 @@ class YouTubeExtractorService:
         self.search_url = "https://www.googleapis.com/youtube/v3/search"
         self.video_url = "https://www.googleapis.com/youtube/v3/videos"
         
+        # Optimized download options to be more resilient to 404s/blocks
         self.download_opts = {
             'format': 'best[ext=mp4]/best',
             'quiet': True,
             'no_warnings': True,
+            'nocheckcertificate': True,
+            'ignoreerrors': True,
+            'youtube_include_dash_manifest': False,
         }
 
     def search_full_movies(self, movie_title: str) -> List[Dict]:
-        """
-        ULTRA-FAST HYBRID INTELLIGENCE:
-        Uses YouTube API for both Search AND Duration checks.
-        Zero dependence on yt-dlp for discovery.
-        """
         if not self.api_key:
-            logger.info("No API key provided, using limited fallback.")
             return self._fast_scan_fallback(movie_title)
 
         try:
-            # Step 1: Search for videos
             search_params = {
                 'part': 'snippet',
                 'q': f"{movie_title} full movie",
                 'type': 'video',
-                'videoDuration': 'long', # API filter for > 20 mins
+                'videoDuration': 'long',
                 'maxResults': 10,
                 'key': self.api_key
             }
@@ -47,8 +44,6 @@ class YouTubeExtractorService:
             if not items:
                 return []
 
-            # Step 2: Get exact durations for these videos using the /videos endpoint
-            # This is MUCH faster than yt-dlp
             video_ids = ",".join([item['id']['videoId'] for item in items])
             video_params = {
                 'part': 'contentDetails',
@@ -61,14 +56,12 @@ class YouTubeExtractorService:
                 video_data = video_res.json().get('items', [])
                 duration_map = {}
                 for v in video_data:
-                    # duration is in ISO 8601 format (e.g., PT1H30M10S)
                     duration_map[v['id']] = self._parse_iso8601_duration(v['contentDetails']['duration'])
 
-                # Step 3: Filter and Return
                 for item in items:
                     v_id = item['id']['videoId']
                     duration = duration_map.get(v_id, 0)
-                    if duration >= 4800: # 80 minutes
+                    if duration >= 4800:
                         return [{
                             "id": v_id,
                             "title": item['snippet']['title'],
@@ -80,29 +73,22 @@ class YouTubeExtractorService:
                         }]
             
             return self._fast_scan_fallback(movie_title)
-
         except Exception as e:
             logger.error(f"Hybrid Search Error: {e}")
             return self._fast_scan_fallback(movie_title)
 
     def _parse_iso8601_duration(self, duration_str: str) -> int:
-        """
-        Converts ISO 8601 duration (PT#H#M#S) to total seconds.
-        Example: PT1H30M10S -> 5410
-        """
         import re
         seconds = 0
         hours = re.search(r'(\d+)H', duration_str)
         minutes = re.search(r'(\d+)M', duration_str)
         secs = re.search(r'(\d+)S', duration_str)
-        
         if hours: seconds += int(hours.group(1)) * 3600
         if minutes: seconds += int(minutes.group(1)) * 60
         if secs: seconds += int(secs.group(1))
         return seconds
 
     def _fast_scan_fallback(self, movie_title: str) -> List[Dict]:
-        # Very limited fallback to prevent hanging
         query = f"ytsearch3:{movie_title} full movie"
         try:
             with yt_dlp.YoutubeDL({'quiet': True, 'no_warnings': True, 'extract_flat': True}) as ydl:
@@ -110,7 +96,6 @@ class YouTubeExtractorService:
                 if 'entries' not in info: return []
                 for entry in info['entries'][:3]:
                     try:
-                        # Use a very fast check
                         with yt_dlp.YoutubeDL({'quiet': True, 'no_warnings': True}) as ydl_fast:
                             full_info = ydl_fast.extract_info(entry['url'], download=False)
                             if full_info.get('duration', 0) >= 4800:
@@ -128,13 +113,32 @@ class YouTubeExtractorService:
         return []
 
     def get_direct_download_link(self, video_id: str) -> Optional[str]:
+        """
+        FIXED Extraction Engine:
+        Uses a more resilient approach to avoid 404s.
+        """
         try:
             url = f"https://www.youtube.com/watch?v={video_id}"
-            with yt_dlp.YoutubeDL(self.download_opts) as ydl:
+            # We use a more aggressive format selection to ensure we get a direct URL
+            opts = {
+                'format': 'best[ext=mp4]/best',
+                'quiet': True,
+                'no_warnings': True,
+                'nocheckcertificate': True,
+            }
+            with yt_dlp.YoutubeDL(opts) as ydl:
                 info = ydl.extract_info(url, download=False)
-                return info.get('url')
+                # Try to get the direct url from 'url' or 'formats'
+                direct_url = info.get('url')
+                if not direct_url and 'formats' in info:
+                    # Find the best mp4 format that has a direct url
+                    for f in info['formats']:
+                        if f.get('ext') == 'mp4' and f.get('url'):
+                            direct_url = f['url']
+                            break
+                return direct_url
         except Exception as e:
-            logger.error(f"Extraction Error: {e}")
+            logger.error(f"Extraction Error for {video_id}: {e}")
             return None
 
 youtube_service = YouTubeExtractorService()

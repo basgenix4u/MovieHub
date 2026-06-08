@@ -22,7 +22,7 @@ export default function MovieDetailsClient({ movie, recommendations, sources, tr
         <div className="absolute bottom-0 left-0 p-8 md:p-16 w-full max-w-6xl mx-auto">
           <h1 className="text-5xl md:text-7xl font-black mb-4">{movie.title}</h1>
           <div className="flex items-center gap-4 text-lg text-gray-300 mb-8">
-            <span className="text-yellow-400 font-bold">★ {movie.vote_average.toFixed(1)}</span>
+            <span className="text-yellow-400 font-bold">{movie.vote_average.toFixed(1)}</span>
             <span>{movie.release_date?.split('-')[0]}</span>
           </div>
 
@@ -31,7 +31,6 @@ export default function MovieDetailsClient({ movie, recommendations, sources, tr
             
             {sources && sources.length > 0 ? (
               sources.map((source: any, idx: number) => {
-                // Handle relative and absolute URLs for downloads
                 const finalUrl = source.url.startsWith('http') 
                   ? source.url 
                   : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${source.url}`;
@@ -47,7 +46,7 @@ export default function MovieDetailsClient({ movie, recommendations, sources, tr
                         : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/30'
                     }`}
                   >
-                    ⬇️ {source.is_youtube ? 'Download HD Movie' : 'Direct Download'}
+                    Download {source.is_youtube ? 'HD Movie' : 'Direct'}
                   </a>
                 ) : (
                   <Link 
@@ -55,7 +54,7 @@ export default function MovieDetailsClient({ movie, recommendations, sources, tr
                     href={`/watch?url=${encodeURIComponent(source.url)}`}
                     className="bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-full font-bold transition-all transform hover:scale-105 shadow-lg shadow-red-600/30 flex items-center gap-2"
                   >
-                    📺 {source.name}
+                    Watch {source.name}
                   </Link>
                 );
               })
