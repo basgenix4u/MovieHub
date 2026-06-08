@@ -29,30 +29,41 @@ export default function MovieDetailsClient({ movie, recommendations, sources, tr
           <div className="flex flex-wrap gap-4">
             {trailerUrl && <TrailerPlayer url={trailerUrl} />}
             
-            {sources.map((source: any, idx: number) => (
-              source.type === 'download' ? (
-                <a 
-                  key={idx} 
-                  href={source.url} 
-                  target="_blank"
-                  className={`px-6 py-4 rounded-full font-bold transition-all transform hover:scale-105 shadow-lg flex items-center gap-2 ${
-                    source.is_youtube 
-                      ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-600/30' 
-                      : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/30'
-                  }`}
-                >
-                  ⬇️ {source.is_youtube ? 'Download HD Movie' : 'Direct Download'}
-                </a>
-              ) : (
-                <Link 
-                  key={idx} 
-                  href={`/watch?url=${encodeURIComponent(source.url)}`}
-                  className="bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-full font-bold transition-all transform hover:scale-105 shadow-lg shadow-red-600/30 flex items-center gap-2"
-                >
-                  📺 {source.name}
-                </Link>
-              )
-            ))}
+            {sources && sources.length > 0 ? (
+              sources.map((source: any, idx: number) => {
+                // Handle relative and absolute URLs for downloads
+                const finalUrl = source.url.startsWith('http') 
+                  ? source.url 
+                  : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${source.url}`;
+
+                return source.type === 'download' ? (
+                  <a 
+                    key={idx} 
+                    href={finalUrl} 
+                    target="_blank"
+                    className={`px-6 py-4 rounded-full font-bold transition-all transform hover:scale-105 shadow-lg flex items-center gap-2 ${
+                      source.is_youtube 
+                        ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-600/30' 
+                        : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/30'
+                    }`}
+                  >
+                    ⬇️ {source.is_youtube ? 'Download HD Movie' : 'Direct Download'}
+                  </a>
+                ) : (
+                  <Link 
+                    key={idx} 
+                    href={`/watch?url=${encodeURIComponent(source.url)}`}
+                    className="bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-full font-bold transition-all transform hover:scale-105 shadow-lg shadow-red-600/30 flex items-center gap-2"
+                  >
+                    📺 {source.name}
+                  </Link>
+                );
+              })
+            ) : (
+              <div className="text-gray-500 italic text-sm">
+                Searching for high-quality sources...
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -62,7 +73,7 @@ export default function MovieDetailsClient({ movie, recommendations, sources, tr
         <p className="text-gray-400 text-lg leading-relaxed">{movie.overview}</p>
       </div>
 
-      {recommendations.length > 0 && (
+      {recommendations && recommendations.length > 0 && (
         <section className="max-w-6xl mx-auto px-8 py-24 border-t border-white/10">
           <div className="flex items-center gap-4 mb-12">
             <h2 className="text-3xl font-black">Recommended For You</h2>

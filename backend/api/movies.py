@@ -7,6 +7,7 @@ from services.scraper_service import scraper_service
 from services.youtube_service import youtube_service
 from core.database import SessionLocal
 from models import models
+from core.config import settings
 
 router = APIRouter(prefix="/movies", tags=["Movies"])
 
@@ -73,13 +74,13 @@ async def get_recommendations(movie_id: int):
 async def get_movie_sources(movie_id: int, title: str):
     """
     AUTOMATED DISCOVERY ENGINE:
-    Finds streaming and download sources from multiple providers,
-    including automatic full-movie discovery on YouTube.
+    Finds streaming and download sources from multiple providers.
     """
     try:
-        # 1. Get sources from existing providers (Thenkiri, etc.)
-        results = await orchestrator.universal_search(title)
         sources = []
+        
+        # 1. Get sources from existing providers
+        results = await orchestrator.universal_search(title)
         for res in results:
             url = res.get('url')
             if url:
@@ -89,23 +90,23 @@ async def get_movie_sources(movie_id: int, title: str):
                 sources.append({"name": "Thenkiri", "url": url, "type": "stream"})
         
         # 2. AUTOMATIC YOUTUBE DISCOVERY
-        # We do the "dirty work" here in the backend so the user doesn't have to
         yt_movies = youtube_service.search_full_movies(title)
         if yt_movies:
-            # Take the best match (sorted by views in the service)
             best_yt = yt_movies[0]
-            # We provide a link to our internal download proxy
-            yt_download_url = f"{API_BASE_URL}/movies/youtube/download/{best_yt['id']}?title={title}"
+            # We use a relative path for the download link so the frontend 
+            # can prepend the correct base URL.
+            yt_download_path = f"/movies/youtube/download/{best_yt['id']}?title={title}"
             
             sources.append({
                 "name": "YouTube HD", 
-                "url": yt_download_url, 
+                "url": yt_download_path, 
                 "type": "download",
                 "is_youtube": True
             })
         
         return {"sources": sources}
     except Exception as e:
+        print(f"Sources Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/youtube/download/{video_id}")
@@ -127,7 +128,6 @@ async def download_youtube_movie(video_id: str, title: str = "movie"):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Keep this for legacy/debug, but the main flow now uses /sources
 @router.get("/youtube/search")
 async def search_youtube_movies(title: str):
     try:
