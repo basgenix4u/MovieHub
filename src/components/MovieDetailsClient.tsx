@@ -31,6 +31,31 @@ export default function MovieDetailsClient({ movie, recommendations, sources, tr
             
             {sources && sources.length > 0 ? (
               sources.map((source: any, idx: number) => {
+                // Handle YouTube vs other sources
+                if (source.type === 'youtube') {
+                  const watchUrl = `https://www.youtube.com/watch?v=${source.url}`;
+                  const downloadUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/movies/youtube/download/${source.url}?title=${encodeURIComponent(movie.title)}`;
+                  
+                  return (
+                    <div key={idx} className="flex gap-2">
+                      <Link 
+                        href={`/watch?url=${encodeURIComponent(watchUrl)}`}
+                        className="bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-full font-bold transition-all transform hover:scale-105 shadow-lg shadow-red-600/30 flex items-center gap-2"
+                      >
+                        Watch HD Movie
+                      </Link>
+                      <a 
+                        href={downloadUrl} 
+                        target="_blank"
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-full font-bold transition-all transform hover:scale-105 shadow-lg shadow-blue-600/30 flex items-center gap-2"
+                      >
+                        Download HD Movie
+                      </a>
+                    </div>
+                  );
+                }
+
+                // Handle other sources
                 const finalUrl = source.url.startsWith('http') 
                   ? source.url 
                   : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${source.url}`;
@@ -40,13 +65,9 @@ export default function MovieDetailsClient({ movie, recommendations, sources, tr
                     key={idx} 
                     href={finalUrl} 
                     target="_blank"
-                    className={`px-6 py-4 rounded-full font-bold transition-all transform hover:scale-105 shadow-lg flex items-center gap-2 ${
-                      source.is_youtube 
-                        ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-600/30' 
-                        : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/30'
-                    }`}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-full font-bold transition-all transform hover:scale-105 shadow-lg shadow-blue-600/30 flex items-center gap-2"
                   >
-                    Download {source.is_youtube ? 'HD Movie' : 'Direct'}
+                    Download Direct
                   </a>
                 ) : (
                   <Link 

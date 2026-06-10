@@ -47,23 +47,16 @@ async def get_recommendations(movie_id: int):
 
 @router.get("/{movie_id}/sources")
 async def get_movie_sources(movie_id: int, title: str):
-    """
-    HYBRID AUTOMATED DISCOVERY:
-    Ultra-fast discovery prioritizing the YouTube API.
-    """
     try:
         sources = []
-        
-        # 1. Focus exclusively on YouTube for high-speed delivery
         yt_movies = youtube_service.search_full_movies(title)
         if yt_movies:
             best_yt = yt_movies[0]
-            yt_download_path = f"/movies/youtube/download/{best_yt['id']}?title={title}"
-            
+            # Return a dedicated YouTube object for the frontend
             sources.append({
                 "name": "YouTube HD", 
-                "url": yt_download_path, 
-                "type": "download",
+                "url": best_yt['id'], # Pass ID instead of URL
+                "type": "youtube",
                 "is_youtube": True
             })
         
@@ -75,11 +68,16 @@ async def get_movie_sources(movie_id: int, title: str):
 @router.get("/youtube/download/{video_id}")
 async def download_youtube_movie(video_id: str, title: str = "movie"):
     try:
-        direct_url = youtube_service.get_direct_download_link(video_id)
-        if not direct_url:
+        # Get both URL and the necessary HEADERS to avoid 403/404
+        download_data = youtube_service.get_direct_download_data(video_id)
+        if not download_data:
             raise HTTPException(status_code=404, detail="Could not extract direct video stream")
 
-        response = requests.get(direct_url, stream=True)
+        direct_url, request_headers = download_data
+
+        # Proxy the stream using the SAME headers as yt-dlp
+        response = requests.get(direct_url, stream=True, headers=request_headers, timeout=15)
+        
         headers = {
             "Content-Disposition": f"attachment; filename={title.replace(' ', '_')}.mp4",
             "Content-Type": "video/mp4",
