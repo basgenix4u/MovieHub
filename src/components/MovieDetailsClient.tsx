@@ -31,9 +31,9 @@ export default function MovieDetailsClient({ movie, recommendations, sources, tr
             
             {sources && sources.length > 0 ? (
               sources.map((source: any, idx: number) => {
-                // Handle YouTube vs other sources
                 if (source.type === 'youtube') {
-                  const watchUrl = `https://www.youtube.com/watch?v=${source.url}`;
+                  // FIX: Use /embed/ instead of /watch to bypass "Refused to Connect"
+                  const watchUrl = `https://www.youtube.com/embed/${source.url}?autoplay=1&rel=0`;
                   const downloadUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/movies/youtube/download/${source.url}?title=${encodeURIComponent(movie.title)}`;
                   
                   return (
@@ -55,7 +55,6 @@ export default function MovieDetailsClient({ movie, recommendations, sources, tr
                   );
                 }
 
-                // Handle other sources
                 const finalUrl = source.url.startsWith('http') 
                   ? source.url 
                   : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${source.url}`;

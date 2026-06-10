@@ -13,11 +13,14 @@ class YouTubeExtractorService:
         self.search_url = "https://www.googleapis.com/youtube/v3/search"
         self.video_url = "https://www.googleapis.com/youtube/v3/videos"
         
+        # Rigorous download options for maximum compatibility
         self.download_opts = {
             'format': 'best[ext=mp4]/best',
             'quiet': True,
             'no_warnings': True,
             'nocheckcertificate': True,
+            'ignoreerrors': True,
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         }
 
     def search_full_movies(self, movie_title: str) -> List[Dict]:
@@ -111,30 +114,38 @@ class YouTubeExtractorService:
 
     def get_direct_download_data(self, video_id: str) -> Optional[Tuple[str, Dict]]:
         """
-        EXTREME EXTRACTION:
-        Returns both the URL AND the required headers to prevent 403/404 errors.
+        SUPER-RIGID EXTRACTION:
+        Tries multiple format strategies to ensure a downloadable URL is found.
         """
         try:
             url = f"https://www.youtube.com/watch?v={video_id}"
+            
+            # Strategy 1: Try best mp4 (Fastest)
             with yt_dlp.YoutubeDL(self.download_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 
-                direct_url = info.get('url')
-                if not direct_url and 'formats' in info:
+                direct_url = None
+                # 1. Check for a single best mp4
+                if info.get('url'):
+                    direct_url = info['url']
+                elif 'formats' in info:
+                    # 2. Look for the best mp4 format specifically
+                    best_mp4 = None
                     for f in info['formats']:
-                        if f.get('ext') == 'mp4' and f.get('url'):
-                            direct_url = f['url']
+                        if f.get('ext') == 'mp4' and f.get('url') and f.get('vcodec') != 'none':
+                            best_mp4 = f['url']
                             break
-                
+                    direct_url = best_mp4
+
                 if not direct_url:
                     return None
 
-                # The secret sauce: Extract headers that yt-dlp used to get this URL
-                # This prevents YouTube from blocking the proxy request.
+                # Use the exact User-Agent yt-dlp used to avoid 403
                 headers = {
-                    "User-Agent": ydl.params.get('user_agent', 'Mozilla/5.0'),
+                    "User-Agent": self.download_opts.get('user_agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'),
                     "Accept": "*/*",
                     "Accept-Language": "en-US,en;q=0.5",
+                    "Referer": "https://www.youtube.com/",
                 }
                 
                 return direct_url, headers
