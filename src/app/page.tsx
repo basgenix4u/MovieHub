@@ -1,5 +1,6 @@
 import Navbar from '@/components/Navbar';
 import MovieCard from '@/components/MovieCard';
+import Logo from '@/components/Logo';
 import { API_BASE_URL } from '@/lib/api';
 
 async function getTrendingMovies() {
@@ -40,6 +41,9 @@ export default async function Home() {
         </div>
 
         <div className="relative z-10 max-w-3xl">
+          <div className="mb-6 animate-fade-in">
+            <Logo showText={false} className="w-20 h-20 mb-4" />
+          </div>
           <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] mb-6 text-gradient">
             UNLIMITED <br /> <span className="text-red-600">CINEMA</span>
           </h1>

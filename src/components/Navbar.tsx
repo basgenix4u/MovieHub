@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { Heart, Search, User } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import AuthModal from './AuthModal';
+import Logo from './Logo';
 
 export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -44,8 +45,8 @@ export default function Navbar() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-3 glass rounded-full">
-        <Link href="/" className="text-2xl font-black tracking-tighter text-red-600 hover:text-red-500 transition-colors">
-          MOVIEHUB
+        <Link href="/" className="hover:opacity-80 transition-opacity">
+          <Logo />
         </Link>
         
         <div className="hidden md:flex gap-8 items-center text-sm font-medium text-gray-400">
