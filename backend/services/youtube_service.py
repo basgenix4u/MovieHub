@@ -13,14 +13,13 @@ class YouTubeExtractorService:
         self.search_url = "https://www.googleapis.com/youtube/v3/search"
         self.video_url = "https://www.googleapis.com/youtube/v3/videos"
         
-        # Rigorous download options for maximum compatibility
         self.download_opts = {
             'format': 'best[ext=mp4]/best',
             'quiet': True,
             'no_warnings': True,
             'nocheckcertificate': True,
-            'ignoreerrors': True,
             'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'referer': 'https://www.youtube.com/',
         }
 
     def search_full_movies(self, movie_title: str) -> List[Dict]:
@@ -114,43 +113,67 @@ class YouTubeExtractorService:
 
     def get_direct_download_data(self, video_id: str) -> Optional[Tuple[str, Dict]]:
         """
-        SUPER-RIGID EXTRACTION:
-        Tries multiple format strategies to ensure a downloadable URL is found.
+        ULTRA-ROBUST EXTRACTION:
+        Attempts to find any playable single-file stream, handling age-restricted 
+        and DASH-only videos by iterating through all available formats.
         """
         try:
             url = f"https://www.youtube.com/watch?v={video_id}"
             
-            # Strategy 1: Try best mp4 (Fastest)
-            with yt_dlp.YoutubeDL(self.download_opts) as ydl:
+            # Use more aggressive extraction options to bypass some restrictions
+            extract_opts = {
+                'quiet': True,
+                'no_warnings': True,
+                'nocheckcertificate': True,
+                'user_agent': self.download_opts['user_agent'],
+                # Try different clients to potentially bypass age restrictions
+                'extractor_args': {'youtube': {'player_client': ['android', 'web']}},
+            }
+
+            with yt_dlp.YoutubeDL(extract_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 
-                direct_url = None
-                # 1. Check for a single best mp4
-                if info.get('url'):
-                    direct_url = info['url']
-                elif 'formats' in info:
-                    # 2. Look for the best mp4 format specifically
-                    best_mp4 = None
-                    for f in info['formats']:
-                        if f.get('ext') == 'mp4' and f.get('url') and f.get('vcodec') != 'none':
-                            best_mp4 = f['url']
-                            break
-                    direct_url = best_mp4
-
-                if not direct_url:
+                if not info:
+                    logger.error(f"yt-dlp failed to extract info for {video_id}")
                     return None
 
-                # Use the exact User-Agent yt-dlp used to avoid 403
-                headers = {
-                    "User-Agent": self.download_opts.get('user_agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'),
-                    "Accept": "*/*",
-                    "Accept-Language": "en-US,en;q=0.5",
-                    "Referer": "https://www.youtube.com/",
-                }
-                
-                return direct_url, headers
+                # Priority 1: Combined MP4 (Best Quality)
+                formats = info.get('formats', [])
+                combined_mp4 = [
+                    f for f in formats 
+                    if f.get('ext') == 'mp4' and f.get('vcodec') != 'none' and f.get('acodec') != 'none'
+                ]
+                if combined_mp4:
+                    best_f = max(combined_mp4, key=lambda x: x.get('height', 0))
+                    return best_f.get('url'), self._get_headers()
+
+                # Priority 2: Any combined format (MKV, WebM etc)
+                combined_any = [
+                    f for f in formats 
+                    if f.get('vcodec') != 'none' and f.get('acodec') != 'none'
+                ]
+                if combined_any:
+                    best_f = max(combined_any, key=lambda x: x.get('height', 0))
+                    return best_f.get('url'), self._get_headers()
+
+                # Priority 3: Fallback to the main URL provided by yt-dlp (if combined)
+                if info.get('url'):
+                    # Note: this is often just a video-only or audio-only stream in DASH
+                    # but it's our last resort.
+                    return info['url'], self._get_headers()
+
+                logger.error(f"No playable combined stream found for {video_id}. Video may be age-restricted or DASH-only.")
+                return None
         except Exception as e:
             logger.error(f"Extraction Error for {video_id}: {e}")
             return None
+
+    def _get_headers(self) -> Dict:
+        return {
+            "User-Agent": self.download_opts['user_agent'],
+            "Accept": "*/*",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Referer": "https://www.youtube.com/",
+        }
 
 youtube_service = YouTubeExtractorService()
