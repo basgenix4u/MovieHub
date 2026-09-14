@@ -8,7 +8,7 @@ class Settings:
     TMDB_API_KEY: str = os.getenv("TMDB_API_KEY", "")
     TMDB_READ_ACCESS_TOKEN: str = os.getenv("TMDB_READ_ACCESS_TOKEN", "")
     TMDB_BASE_URL: str = "https://api.themoviedb.org/3"
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://user:pass@localhost/moviehub")
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
     YOUTUBE_API_KEY: str = os.getenv("YOUTUBE_API_KEY", "")
 
 settings = Settings()
